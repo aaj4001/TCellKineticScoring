@@ -13,7 +13,7 @@ Signature Score is calculated by filtering each dataset on probes of interest, c
 
 Random Score is calculated by doing the same for an equal number of random probes <p>
 
-Statistics compare Signature Score expression to Random Score expression (t test) <p>
+  Statistics compare Signature Score expression to Random Score expression (<b>lme</b>) <p>
 
 <section>
     <h2>README v2.0</h2>
