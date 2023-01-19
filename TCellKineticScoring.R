@@ -113,21 +113,41 @@ SignatureScorePlot <- function(InputGeneMatrix,SigList = Hacohen_Signatures){
   Signature_Plot$SampleName = factor(Signature_Plot$SampleName,levels = unique(Signature_Plot$SampleName))
   Signature_Plot$ExpBase = factor(Signature_Plot$ExpBase)
   
-  ## Does T Test on Signature Score vs Baseline (Random Probes) - SHOULD I DO LME?
-  ## PAIR THE T TEST - Signature and Random are paired
-  TTestPVals = matrix(nrow = length(SigList),ncol = length(levels(Signature_Plot$SampleName)))
-  colnames(TTestPVals) = levels(Signature_Plot$SampleName);rownames(TTestPVals) = names(SigList)
-  for(i in 1:nrow(TTestPVals)){
-    for(j in 1:ncol(TTestPVals)){
-      Sample = colnames(TTestPVals)[j];Cluster = names(SigList)[i]
-      TTestValues = Signature_Plot[Signature_Plot$Cluster==Cluster&Signature_Plot$SampleName==Sample,]
-      TTestValues$Sample = factor(TTestValues$Sample)
-      LME_Results = lme(ZScore~ExpBase,random=~1|Sample,data = TTestValues)
-      TTestPVals[i,j] = anova(LME_Results)$`p-value`[2]
-    }
-  }
-  print(TTestPVals)
+  ## LME Test for Significance - compares each point to the point before
   
+  LME_Sig = Signature_Plot[Signature_Plot$ExpBase == "Sig",]
+  LME_Sig$Sample = factor(sapply(strsplit(as.character(LME_Sig$Sample),fixed = TRUE,split = "_"),function(x) x[length(x)]))
+  
+  LME_Sig_PVals = matrix(nrow = length(SigList),ncol = length(levels(LME_Sig$SampleName))-1)
+  
+  for(Sigs in 1:length(SigList)){
+    LME_Sigs = LME_Sig[LME_Sig$Cluster == names(SigList)[Sigs],]
+    LME_Sig_Results = lme(ZScore~SampleName,random=~1|Sample,data = LME_Sigs)
+    LME_Sig_Results = summary(emmeans(LME_Sig_Results,"pairwise"~SampleName,adjust = "none"))$contrasts
+    
+    
+    PVals = LME_Sig_Results[nrow(LME_Sig_Results),6]
+    SampleName = as.character(LME_Sig_Results[nrow(LME_Sig_Results),1])
+    Index = nrow(LME_Sig_Results)
+    
+    for(i in 2:(length(unique(LME_Sig$SampleName))-1)){
+      Index = Index - i
+      PVals = c(PVals,LME_Sig_Results[Index,6])
+      SampleName = c(SampleName,as.character(LME_Sig_Results[Index,1]))
+    }
+    
+    PVals = rev(PVals)
+    SampleName = rev(SampleName)
+    
+    LME_Sig_PVals[Sigs,] = PVals
+  }
+  
+  colnames(LME_Sig_PVals) = SampleName
+  rownames(LME_Sig_PVals) = names(SigList)
+  
+  print(LME_Sig_PVals)
+  
+  ## Plots Individual + Combined
   pal = scales::hue_pal()(5)[c(1,3,5)]
   
   Plots = list()
@@ -139,8 +159,8 @@ SignatureScorePlot <- function(InputGeneMatrix,SigList = Hacohen_Signatures){
     ExpSD = ExpMean; BaseMean = ExpMean; BaseSD = ExpMean
     for(j in 1:length(Sample)){
       Exp = Signature_Plot$ZScore[Signature_Plot$ExpBase=="Sig"&
-                                  Signature_Plot$SampleName==Sample[j]&
-                                  Signature_Plot$Cluster==names(SigList)[i]]
+                                    Signature_Plot$SampleName==Sample[j]&
+                                    Signature_Plot$Cluster==names(SigList)[i]]
       Base = Signature_Plot$ZScore[Signature_Plot$ExpBase=="Base"&
                                      Signature_Plot$SampleName==Sample[j]&
                                      Signature_Plot$Cluster==names(SigList)[i]]
@@ -165,7 +185,7 @@ SignatureScorePlot <- function(InputGeneMatrix,SigList = Hacohen_Signatures){
   }  
   
   CombinedPlot$Cluster = rep(names(SigList),each = length(levels(CombinedPlot$Sample)))
-
+  
   
   Plots[[4]] = ggplot(data = CombinedPlot,aes(Sample,ExpMean,group = Cluster)) +
     scale_color_manual(values = pal) +
@@ -178,8 +198,11 @@ SignatureScorePlot <- function(InputGeneMatrix,SigList = Hacohen_Signatures){
     theme(axis.title = element_blank(),axis.text = element_blank()) + 
     ylim(c(-1.9,1.9)) 
   
+  for(i in 1:2) Plots[[i]] = Plots[[i]] + theme(axis.line.x = element_blank(),axis.ticks.x = element_blank())
   
-  Plots
+  
+  CombinedPlot = plot_grid(plotlist = Plots,align = "hv",nrow = 4)
+  CombinedPlot
 }
 
 SignatureScorePlot_OneSampleRep <- function(InputGeneMatrix,SigList = Hacohen_Signatures){
@@ -226,7 +249,10 @@ SignatureScorePlot_OneSampleRep <- function(InputGeneMatrix,SigList = Hacohen_Si
     theme(axis.title = element_blank(),axis.text = element_blank()) + 
     ylim(c(-1.9,1.9)) 
   
-  Plots
+  for(i in 1:2) Plots[[i]] = Plots[[i]] + theme(axis.line.x = element_blank(),axis.ticks.x = element_blank())
+  
+  CombinedPlot = plot_grid(plotlist = Plots,align = "hv",nrow = 4)
+  CombinedPlot
 }
 
 SlopePlot_OneSampleRep <- function(InputGeneMatrix,SigList =Hacohen_Signatures){
@@ -274,9 +300,9 @@ SlopePlot_OneSampleRep <- function(InputGeneMatrix,SigList =Hacohen_Signatures){
     Plots[[i]] = ggplot(data = SlopeComparison,aes(x = ExpBase,y = Sample.trend)) +
       scale_colour_manual(values = c("grey55",pal[i])) + 
       scale_fill_manual(values = c("grey55",pal[i])) +
-      geom_hline(yintercept = 0) +
+      # geom_hline(yintercept = 0) +
       geom_errorbar(aes(ymin = lower.CL,ymax = upper.CL,color = ExpBase),width=0.4, size=0.5) + 
-      geom_point(aes(fill = ExpBase),size = 4,shape = 21) +
+      geom_point(aes(fill = ExpBase),size = 4,shape = 22) +
       theme_cowplot() + 
       theme(legend.position = "none",axis.title = element_blank(),axis.text = element_blank()) +
       ylim(c(-2.5,2.5))
@@ -285,9 +311,10 @@ SlopePlot_OneSampleRep <- function(InputGeneMatrix,SigList =Hacohen_Signatures){
   }
   
   Plots[[4]] = frame()
-  #for(i in 1:3) Plots[[i]] = Plots[[i]] + theme(axis.line.x = element_blank(),axis.ticks.x = element_blank())
+  for(i in 1:2) Plots[[i]] = Plots[[i]] + theme(axis.line.x = element_blank(),axis.ticks.x = element_blank())
   
-  Plots
+  CombinedPlot = plot_grid(plotlist = Plots,nrow = 4)
+  CombinedPlot
 }
 
 #########################################################################################################
@@ -393,13 +420,12 @@ rm(Annotated,Kupper_Exprs,Kupper_Exprs_Matrix,Kupper)
 #########################################################################################################
 ## Combined Plot
 
-Cluster = 3
-CombinedPlot = plot_grid(Sarkar_Arm[[Cluster]],Arm[[Cluster]],cl13[[Cluster]],Sheitinger_SV40TAG[[Cluster]],Kupper_VacV[[Cluster]],frame(),Kupper_VacV_Slopes[[Cluster]],ncol = 7,
-          rel_widths = c(3,3,3,3,3,0.5,1))
+CombinedPlot = plot_grid(Sarkar_Arm,Arm,cl13,Sheitinger_SV40TAG,Kupper_VacV,frame(),Kupper_VacV_Slopes,ncol = 7,
+                         rel_widths = c(3,3,3,3,3,0.5,1))
 
 print(CombinedPlot)
 
-Scale = 1
-pdf("Cluster5_NewStats.pdf",width = 11.15*Scale,height = 3.25*Scale)
+Scale = 2
+pdf("BackScoring_RandomCondensed_v6.pdf",width = 6.55*Scale,height = 4.25*Scale)
 print(CombinedPlot)
 dev.off()
