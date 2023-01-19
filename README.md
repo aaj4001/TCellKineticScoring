@@ -1,2 +1,2 @@
 # TCellKineticScoring
-Scores T cell gene programs in kinetic datasets (microarray, RNAseq) of CD8+ T cell differentiation in order to contextualize gene programs as well as offer insight into T cell differentiation status
+Allows to score gene programs in Kinetic Trajectory datasets of CD8+ T cell differentiation to contextualize T cell gene programs and infer differentiation states (see Jaiswal et al Cancer Cell 2022 for example use case)
