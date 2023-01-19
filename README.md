@@ -16,7 +16,7 @@ Random Score is calculated by doing the same for an equal number of random probe
 Statistics compare Signature Score expression to Random Score expression (t test) <p>
 
 <section>
-    <h2>README v1.0</h2>
+    <h2>README v2.0</h2>
     <ul>
       <li>Moved Signature Score calculation onto one file instead of multiple for ease of reading</li>
       <li>Condensed random Score (took mean so that # of scores = # of signature Scores)</li>
