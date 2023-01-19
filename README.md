@@ -17,7 +17,10 @@ Statistics compare Signature Score expression to Random Score expression (t test
 
 <section>
     <h2>README v1.0</h2>
-    <p>Dataset download/processing and Signature Score Calculation, Plotting done in Scoring?_MeanExpression_WITHRANDOM.R</p>
-    <p>Combining all kinetic trajecotry plots done in PlottingBackscoring_WithRANDOM.R</p>
-    
+    <ul>
+      <li>Moved Signature Score calculation onto one file instead of multiple for ease of reading</li>
+      <li>Condensed random Score (took mean so that # of scores = # of signature Scores)</li>
+      <li>Lme instead of T test to compare signature scores and random scores</li>
+      <li>Added Slope analysis of Kupper Vaccinia enrichment compared to random probes</li>
+    </ul>    
 </section>
