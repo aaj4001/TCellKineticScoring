@@ -16,8 +16,10 @@ Random Score is calculated by doing the same for an equal number of random probe
   Statistics compare Signature Score expression to expression at preceding timepoint (<b>lme</b>) <p>
 
 <section>
-    <h2>README v3.0</h2>
+    <h2>README v4.0</h2>
     <ul>
-      <li>LME now compares each timepoint to timepoint preceding</li>
+      <li>Converted Analysis script into function to analyze any query signature with kinetic sets available</li>
+      <li>Uses rda file for kinetic set input, avoids multiple geoqueries and dataset imports (script used to generate kinetic set object included)</li>
+      <li>Slope analysis of Kupper is now redone using lm</li>
     </ul>    
 </section>
