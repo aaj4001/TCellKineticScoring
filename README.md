@@ -13,11 +13,14 @@ Signature Score is calculated by filtering each dataset on probes of interest, c
 
 Random Score is calculated by doing the same for an equal number of random probes <p>
 
-  Statistics compare Signature Score expression to expression at preceding timepoint (<b>lme</b>) <p>
+  Statistics compare Signature Score expression to Random Score expression (<b>lme</b>) <p>
 
 <section>
-    <h2>README v3.0</h2>
+    <h2>README v2.0</h2>
     <ul>
-      <li>LME now compares each timepoint to timepoint preceding</li>
+      <li>Moved Signature Score calculation onto one file instead of multiple for ease of reading</li>
+      <li>Condensed random Score (took mean so that # of scores = # of signature Scores)</li>
+      <li>Lme instead of T test to compare signature scores and random scores</li>
+      <li>Added Slope analysis of Kupper Vaccinia enrichment compared to random probes</li>
     </ul>    
 </section>
