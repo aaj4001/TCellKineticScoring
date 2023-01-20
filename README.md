@@ -13,7 +13,7 @@ Signature Score is calculated by filtering each dataset on probes of interest, c
 
 Random Score is calculated by doing the same for an equal number of random probes <p>
 
-  Statistics compare Signature Score expression to expression at preceding timepoint (<b>lme</b>) <p>
+  Statistics compare Signature Score expression to expression at preceding timepoint (lme) <p>
 
 <section>
     <h2>README v4.0</h2>
@@ -21,5 +21,10 @@ Random Score is calculated by doing the same for an equal number of random probe
       <li>Converted Analysis script into function to analyze any query signature with kinetic sets available</li>
       <li>Uses rda file for kinetic set input, avoids multiple geoqueries and dataset imports (script used to generate kinetic set object included)</li>
       <li>Slope analysis of Kupper is now redone using lm</li>
-    </ul>    
+    </ul>
+    Scoring Functions: 
+    <ul>
+      <li>SignatureScorePlot - Signature Scoring, does not compute stats on Kupper TRM scoring</li>
+      <li>SignatureScorePlot_TRMSlopeEval - Signature Scoring, computes slope from d0-90 and p value of enrichment in Kupper TRM set using lm </li>
+    </ul>
 </section>
