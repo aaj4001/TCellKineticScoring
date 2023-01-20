@@ -77,7 +77,7 @@ xx <- as.data.frame(x[mapped_probes])
 Kupper_Exprs <- merge(xx, Kupper_Exprs,by.x = 1, by.y = 0,all.y=T)
 
 Kupper_VacV = data.matrix(Kupper_Exprs[,3:ncol(Kupper_Exprs)])
-rownames(Kupper_VacV) = toupper(Kupper_Exprs$SYMBOL)
+rownames(Kupper_VacV) = toupper(Kupper_Exprs$symbol)
 colnames(Kupper_VacV) = c("N", "CM", "EM", "d5", "d10", "d15", "d20", "d25", "d30", "d45", "d60", "d90", "OT-I Fasbp4/5 dKO skin infiltrating cells 10 days post infection", "OT-I Fasbp4/5 dKO skin infiltrating cells 30 days post infection")
 
 ## Removes irrelevant timepoints
