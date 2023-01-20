@@ -50,13 +50,12 @@ boxplot(Sarkar_Arm)
 rm(Sarkar_Exprs,Sarkar,x,xx,Symbols)
 
 ## SV40-TAG
-GSE89307 <- read_delim("GSE89307_FPKM.txt","\t", escape_double = FALSE, trim_ws = TRUE)
+GSE89307 <- read_delim("DerivingKineticSets_RawData/GSE89307_FPKM.txt","\t", escape_double = FALSE, trim_ws = TRUE)
 
 SV40 = data.matrix(GSE89307[,3:ncol(GSE89307)])
 SV40 = SV40[,-c(1:6,27:35)]
 rownames(SV40) = GSE89307$Gene_Symbol
 colnames(SV40) = sapply(strsplit(colnames(SV40),split = "_"),function(x) paste(x[-1],collapse = "_"))
-# Sheitinger_Matrix = Sheitinger_Matrix[rowSums(Sheitinger_Matrix)>0,]
 SV40 = log2((SV40+1))
 SV40 = SV40[rowSums(SV40)>0,]
 rownames(SV40) = toupper(rownames(SV40))
