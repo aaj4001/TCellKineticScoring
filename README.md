@@ -13,11 +13,13 @@ Signature Score is calculated by filtering each dataset on probes of interest, c
 
 Random Score is calculated by doing the same for an equal number of random probes <p>
 
-  Statistics compare Signature Score expression to expression at preceding timepoint (<b>lme</b>) <p>
+  Statistics compare Signature Score expression to expression at preceding timepoint (lme) <p>
 
 <section>
-    <h2>README v3.0</h2>
+    <h2>README v4.0</h2>
     <ul>
-      <li>LME now compares each timepoint to timepoint preceding</li>
+      <li>Used an rda file for kinetic set input, instead of multiple GEOQueries etc</li>
+      <li>Converted Kinetic Scoring analysis into function to analyze any query signature</li>
+      <li>Slope analysis of Kupper is now redone using lm</li>
     </ul>    
 </section>
