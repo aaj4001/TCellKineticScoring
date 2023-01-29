@@ -57,7 +57,12 @@ colnames(Wherry_Exprs_Matrix) = c("N_1","N_2","N_3","N_4","Arm_D6_1","Arm_D6_2",
                                   "cl13_D30_2","cl13_D30_3","cl13_D30_4")
 
 Arm = Wherry_Exprs_Matrix[,1:20]
+Arm = Arm[rowSums(Arm)>0,]
+Arm = Arm[apply(Arm,1,sd)!=0,]
+
 cl13 = Wherry_Exprs_Matrix[,c(1:4,21:36)]
+cl13 = cl13[rowSums(cl13)>0,]
+cl13 = cl13[apply(cl13,1,sd)!=0,]
 
 boxplot(Arm)
 
@@ -102,6 +107,11 @@ Sarkar_Arm = Sarkar_Arm[,c(1:3,10:12,4:6)]
 boxplot(Sarkar_Arm)
 Sarkar_Arm = log2(Sarkar_Arm+1)
 boxplot(Sarkar_Arm)
+
+Sarkar_Arm = Sarkar_Arm[rowSums(Sarkar_Arm)>0,]
+Sarkar_Arm = Sarkar_Arm[apply(Sarkar_Arm,1,sd)!=0,]
+
+
 
 rm(Sarkar_Exprs,Sarkar,ProbeIDs, Sarkar_Exprs_nonNA,Sarkar_Exprs_NA)
 
@@ -159,6 +169,11 @@ Kupper_VacV = Kupper_VacV[,-c(ncol(Kupper_VacV),ncol(Kupper_VacV)-1)]
 Kupper_VacV = Kupper_VacV[,c(2,3,1,4:12)]
 
 boxplot(Kupper_VacV)
+
+Kupper_VacV = Kupper_VacV[rowSums(Kupper_VacV)>0,]
+Kupper_VacV = Kupper_VacV[apply(Kupper_VacV,1,sd)!=0,]
+
+
 rm(Kupper,Kupper_Exprs,x,xx,mapped_probes, Kupper_Exprs_NA, Kupper_Exprs_nonNA)
 
 ####################################################################################################################################
@@ -170,7 +185,7 @@ GSE26347_Eff = exprs(GSE26347[["GSE26347-GPL570_series_matrix.txt.gz"]])[,19:25]
 
 ProbeIDs = GSE26347[["GSE26347-GPL570_series_matrix.txt.gz"]]@featureData@data %>%
   mutate(symbol = sapply(strsplit(`Gene symbol`,"///"),function(x) x[1])) %>%
-  select(ID, symbol)
+  dplyr::select(ID, symbol)
 
 GSE26347_Eff = merge(ProbeIDs,GSE26347_Eff,by.x = 1,by.y = 0)
 
@@ -200,6 +215,8 @@ boxplot(GSE26347_Effector)
 GSE26347_Effector = log2(GSE26347_Effector)
 boxplot(GSE26347_Effector)
 
+GSE26347_Effector = GSE26347_Effector[rowSums(GSE26347_Effector)>0,]
+GSE26347_Effector = GSE26347_Effector[apply(GSE26347_Effector,1,sd)!=0,]
 
 rm(GSE26347,GSE26347_Eff, ProbeIDs, GSE26347_Eff_NA, GSE26347_Eff_nonNA)
 
