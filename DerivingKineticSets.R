@@ -1,11 +1,28 @@
+## ---------------------------
+##
+## Purpose of script: Derives Kinetic Sets
+##
+## Author: Abhi Jaiswal
+##
+## Date Created: 2023-01-27
+##
+## Email: ajaiswal1995@gmail.com
+##
+## Packages:
+
 library(GEOquery)
 library(readr)
 library(mogene10sttranscriptcluster.db)
 library(mogene20sttranscriptcluster.db)
 library(mouse4302.db)
+library(biomaRt)
+library(dplyr)
+library(magrittr)
 
-## Imports Datasets #########################################################################################################
+
+####################################################################################################################################
 ## Wherry
+
 Wherry = getGEO("GSE41867")
 Wherry_Exprs = data.frame(exprs(Wherry[[1]]))
 
@@ -29,7 +46,9 @@ boxplot(Arm)
 
 rm(x,xx,mapped_probes,Wherry,Wherry_Exprs,Wherry_Exprs_Matrix)
 
+####################################################################################################################################
 ## Sarkar
+
 Sarkar = getGEO("GSE10239")
 Sarkar_Exprs = data.frame(exprs(Sarkar[[1]]))
 
@@ -52,6 +71,7 @@ boxplot(Sarkar_Arm)
 
 rm(Sarkar_Exprs,Sarkar,x,xx,mapped_probes)
 
+####################################################################################################################################
 ## SV40-TAG
 GSE89307 <- read_delim("DerivingKineticSets_RawData/GSE89307_FPKM.txt","\t", escape_double = FALSE, trim_ws = TRUE)
 
@@ -66,7 +86,9 @@ SV40 = SV40[,rev(1:ncol(SV40))]
 
 rm(GSE89307)
 
+####################################################################################################################################
 ## Kupper TRM
+
 Kupper = getGEO("GSE79805")
 Kupper_Exprs = data.frame(exprs(Kupper[[1]]))
 
@@ -87,10 +109,74 @@ Kupper_VacV = Kupper_VacV[,c(2,3,1,4:12)]
 boxplot(Kupper_VacV)
 rm(Kupper,Kupper_Exprs,x,xx,mapped_probes)
 
-KineticLists = list(Sarkar_Arm = Sarkar_Arm, 
-                    Arm = Arm, 
-                    cl13 = cl13, 
-                    SV40 = SV40,
-                    Kupper_VacV = Kupper_VacV)
+####################################################################################################################################
+## Human Yellow Fever Microarray
+
+GSE26347 = getGEO("GSE26347",AnnotGPL = TRUE)
+
+GSE26347_Eff = exprs(GSE26347[["GSE26347-GPL570_series_matrix.txt.gz"]])[,19:25]
+ProbeIDs = GSE26347[["GSE26347-GPL570_series_matrix.txt.gz"]]@featureData@data[,c(1,3)]
+GSE26347_Eff = merge(ProbeIDs,GSE26347_Eff,by = 0)
+
+GSE26347_Effector = data.matrix(GSE26347_Eff[,-(1:3)])
+rownames(GSE26347_Effector) = GSE26347_Eff$`Gene symbol`
+colnames(GSE26347_Effector) = c("Naive_1","Naive_2","Naive_3","Effector_1","Effector_2","Effector_3","Effector_4")
+
+## Log2 transformation needed - see boxplot before and after
+boxplot(GSE26347_Effector)
+GSE26347_Effector = log2(GSE26347_Effector)
+boxplot(GSE26347_Effector)
+
+## collapses replicate probes - average of all probes for one gene
+Genes = unique(rownames(GSE26347_Effector))
+GSE26347_Effector_Collapsed = matrix(nrow = length(Genes),ncol = ncol(GSE26347_Effector))
+for(i in 1:length(Genes)){
+  Gene = GSE26347_Effector[rownames(GSE26347_Effector)==Genes[i],]
+  if(!is.null(nrow(Gene))) Gene = colMeans(Gene)
+  GSE26347_Effector_Collapsed[i,] = Gene
+}
+
+rownames(GSE26347_Effector_Collapsed) = Genes
+colnames(GSE26347_Effector_Collapsed) = colnames(GSE26347_Effector)
+
+rm(GSE26347,GSE26347_Eff,GSE26347_Effector, ProbeIDs, Gene, Genes, i)
+
+####################################################################################################################################
+## Human Yellow Fever RNASeq
+
+## Yellow Fever Effector FPKM
+GSE100745 <- read_delim("./DerivingKineticSets_RawData/GSE100745_cufflinks_fpkm_gene.txt", 
+                        "\t", escape_double = FALSE, trim_ws = TRUE)
+
+mart <- useMart("ensembl", dataset = "hsapiens_gene_ensembl")
+
+GeneSymbol = getBM(attributes = c("ensembl_gene_id_version","external_gene_name"),
+                   filters = "ensembl_gene_id_version",
+                   values = GSE100745$tracking_id,
+                   mart = mart)
+
+GSE100745 = merge(GeneSymbol,GSE100745,by = 1)
+
+YF_RNASeq = data.matrix(GSE100745[,3:ncol(GSE100745)])
+rownames(YF_RNASeq) = GSE100745$external_gene_name
+colnames(YF_RNASeq) = c("Naive_AKJ", "Naive_YF653", "Naive_YF661", "Naive_RTA336", "Naive_MCB", "Naive_EVC422", "D14_YF679", 
+                        "D14_YF661", "D14_YF631", "Mem_MCB", "Mem_EVC422", "Mem_E07", "Mem_RTA336", "Mem_AKJ")
+
+YF_RNASeq = log2((YF_RNASeq+1))
+YF_RNASeq = YF_RNASeq[rowSums(YF_RNASeq)>0,]
+rownames(YF_RNASeq) = toupper(rownames(YF_RNASeq))
+
+rm(GeneSymbol, GSE100745, mart)
+
+####################################################################################################################################
+## Puts together all Kinetic Sets into one rda file, includes PlotType instructions for how to handle stats and plotting
+
+KineticLists = list(Sarkar_Arm = list(Exprs = Sarkar_Arm, PlotType = "Replicate_Line"), 
+                    Arm = list(Exprs = Arm, PlotType = "Replicate_Line"), 
+                    cl13 = list(Exprs = cl13, PlotType = "Replicate_Line"), 
+                    SV40 = list(Exprs = SV40, PlotType = "Replicate_Line"),
+                    Kupper_VacV = list(Exprs = Kupper_VacV, PlotType = "Slope_Line"),
+                    YF_Effector = list(Exprs = GSE26347_Effector_Collapsed, PlotType = "Replicate_Box"),
+                    YF_RNASeq = list(Exprs = YF_RNASeq, PlotType = "Replicate_Line_TTest"))
 
 save(KineticLists,file = "KineticSets.rda",compression_level = 9)
