@@ -7,24 +7,23 @@ Signature Score Calculation for Hacohen Pseudotime Clusters done on kinetic traj
   <li>LCMV cl 13 (Doering et al 2012 GSE41867)</li>
   <li>SV40TAG tumorigenesis (Philip et al 2017 GSE89307)</li>
   <li>Vaccinia virus infection (Pan et al 2017 GSE79805)</li>
+  <li><b>Human Yellow Fever vaccination (Akondy et al 2017) T cell activation microarray (GSE26347), T cell activation and memory RNAseq (GSE100745)</b></li>
+
 </ul>
 
 Signature Score is calculated by filtering each dataset on probes of interest, centering all gene expression across each sample (row z score) and then averaging centered expression across all genes (column mean) to compute a signature score for each sample. Signature_Up - Signature_Down <p>
 
 Random Score is calculated by doing the same for an equal number of random probes <p>
 
-  Statistics compare Signature Score expression to expression at preceding timepoint (lme) <p>
+  Statistics compare Signature Score expression to expression at preceding timepoint (lme for all timecourses except YF RNAseq, where a t-test was used). For vaccinia virus skin scarification, statistics of expression change over time calculated using lm. <p>
 
 <section>
-    <h2>README v4.0</h2>
+    <h2>README v5.0 <b>(This version was the final version used in Jaiswal et al Cancer Cell 2022)</b> </h2>
     <ul>
-      <li>Converted Analysis script into function to analyze any query signature with kinetic sets available</li>
-      <li>Uses rda file for kinetic set input, avoids multiple geoqueries and dataset imports (script used to generate kinetic set object included)</li>
-      <li>Slope analysis of Kupper is now redone using lm</li>
+      <li>Added Human Yellow Fever datasets to kinetic set analysis </li>
     </ul>
     Scoring Functions: 
     <ul>
-      <li>SignatureScorePlot - Signature Scoring, does not compute stats on Kupper TRM scoring</li>
       <li>SignatureScorePlot_TRMSlopeEval - Signature Scoring, computes slope from d0-90 and p value of enrichment in Kupper TRM set using lm </li>
     </ul>
 </section>
