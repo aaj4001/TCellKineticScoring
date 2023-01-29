@@ -26,13 +26,30 @@ library(magrittr)
 Wherry = getGEO("GSE41867")
 Wherry_Exprs = data.frame(exprs(Wherry[[1]]))
 
+## Standardizes probe calling for microarray datasets!!!
+## Any probes that don't map to genes are given NA designation "---"
+## For non-NA probes, any probes found mapping to the same gene will be compared
+## Only the probe with the highest  median absolute deviation will be retained
+## https://support.bioconductor.org/p/70133/
+
 x <- mogene10sttranscriptclusterSYMBOL
 mapped_probes <- mappedkeys(x)
 xx <- as.data.frame(x[mapped_probes])
 
 Wherry_Exprs <- merge(xx, Wherry_Exprs,by.x = 1, by.y =0,all.y = T)
 
-Wherry_Exprs_Matrix = data.matrix(Wherry_Exprs[,3:ncol(Wherry_Exprs)])
+Wherry_Exprs = Wherry_Exprs %>% mutate(symbol = case_when(is.na(symbol) ~ "---",
+                                                          !is.na(symbol) ~ symbol),
+                                       MAD = apply(dplyr::select(Wherry_Exprs,starts_with("GSM")),1,mad))
+
+Wherry_Exprs_NAs = Wherry_Exprs %>% subset(symbol == "---")
+Wherry_Exprs_nonNAs = Wherry_Exprs %>% subset(symbol != "---") %>% group_by(symbol) %>%
+  slice_max(MAD, with_ties = F)
+
+Wherry_Exprs = rbind(Wherry_Exprs_nonNAs, Wherry_Exprs_NAs) %>% dplyr::select(symbol,starts_with("GSM"))
+
+
+Wherry_Exprs_Matrix = data.matrix(Wherry_Exprs[,2:ncol(Wherry_Exprs)])
 rownames(Wherry_Exprs_Matrix) = toupper(Wherry_Exprs$symbol)
 colnames(Wherry_Exprs_Matrix) = c("N_1","N_2","N_3","N_4","Arm_D6_1","Arm_D6_2","Arm_D6_3","Arm_D6_4","Arm_D8_1","Arm_D8_2","Arm_D8_3","Arm_D8_4",
                                   "Arm_D15_1","Arm_D15_2","Arm_D15_3","Arm_D15_4","Arm_D30_1","Arm_D30_2","Arm_D30_3","Arm_D30_4","cl13_D6_1","cl13_D6_2",
@@ -40,39 +57,67 @@ colnames(Wherry_Exprs_Matrix) = c("N_1","N_2","N_3","N_4","Arm_D6_1","Arm_D6_2",
                                   "cl13_D30_2","cl13_D30_3","cl13_D30_4")
 
 Arm = Wherry_Exprs_Matrix[,1:20]
+Arm = Arm[rowSums(Arm)>0,]
+Arm = Arm[apply(Arm,1,sd)!=0,]
+
 cl13 = Wherry_Exprs_Matrix[,c(1:4,21:36)]
+cl13 = cl13[rowSums(cl13)>0,]
+cl13 = cl13[apply(cl13,1,sd)!=0,]
 
 boxplot(Arm)
 
-rm(x,xx,mapped_probes,Wherry,Wherry_Exprs,Wherry_Exprs_Matrix)
+rm(x,xx,mapped_probes,Wherry,Wherry_Exprs,Wherry_Exprs_Matrix, Wherry_Exprs_NAs, Wherry_Exprs_nonNAs)
 
 ####################################################################################################################################
 ## Sarkar
 
-Sarkar = getGEO("GSE10239")
+Sarkar = getGEO("GSE10239", getGPL = T)
+
+ProbeIDs = Sarkar$GSE10239_series_matrix.txt.gz@featureData@data %>% dplyr::select(ID, `Gene Symbol`) %>%
+  mutate(symbol = sapply(strsplit(`Gene Symbol`," /// "),function(x) x[1]))
+
 Sarkar_Exprs = data.frame(exprs(Sarkar[[1]]))
+Sarkar_Exprs = merge(ProbeIDs,Sarkar_Exprs,by.x = 1,by.y = 0, all.y = T)
 
-## Annotation
-x <- mouse4302SYMBOL
-mapped_probes <- mappedkeys(x)
-xx <- as.data.frame(x[mapped_probes])
+## Standardizes probe calling for microarray datasets!!!
+## Any probes that don't map to genes are given NA designation "---"
+## For non-NA probes, any probes found mapping to the same gene will be compared
+## Only the probe with the highest  median absolute deviation will be retained
+## https://support.bioconductor.org/p/70133/
 
-Sarkar_Exprs = merge(xx,Sarkar_Exprs,by.x = 1,by.y = 0, all.y = T)
+Sarkar_Exprs %<>% mutate(symbol = case_when(is.na(symbol) ~ "---",
+                                            !is.na(symbol) ~ symbol),
+                         MAD = apply(dplyr::select(Sarkar_Exprs,starts_with("GSM")),1,mad))
 
-Sarkar_Arm = data.matrix(Sarkar_Exprs[,3:ncol(Sarkar_Exprs)])
+Sarkar_Exprs_NA = Sarkar_Exprs %>% subset(symbol == "---")
+Sarkar_Exprs_nonNA = Sarkar_Exprs %>% subset(symbol != "---") %>% group_by(symbol) %>%
+  slice_max(MAD, with_ties = F)
+
+Sarkar_Exprs = rbind(Sarkar_Exprs_nonNA,Sarkar_Exprs_NA)
+Sarkar_Exprs = Sarkar_Exprs %>% dplyr::select(symbol, starts_with("GSM"))
+
+Sarkar_Arm = data.matrix(Sarkar_Exprs[,2:ncol(Sarkar_Exprs)])
 rownames(Sarkar_Arm) = toupper(Sarkar_Exprs$symbol)
 colnames(Sarkar_Arm) = c("N_1","N_2","N_3","Memory_1","Memory_2",
                          "Memory_3","KLRG1int_1","KLRG1int_2","KLRG1int_3",
                          "KLRG1hi_1","KLRG1hi_2","KLRG1hi_3")
-
 Sarkar_Arm = Sarkar_Arm[,c(1:3,10:12,4:6)]
+
+## Need to take log2 of microarray data!!
+boxplot(Sarkar_Arm)
 Sarkar_Arm = log2(Sarkar_Arm+1)
 boxplot(Sarkar_Arm)
 
-rm(Sarkar_Exprs,Sarkar,x,xx,mapped_probes)
+Sarkar_Arm = Sarkar_Arm[rowSums(Sarkar_Arm)>0,]
+Sarkar_Arm = Sarkar_Arm[apply(Sarkar_Arm,1,sd)!=0,]
+
+
+
+rm(Sarkar_Exprs,Sarkar,ProbeIDs, Sarkar_Exprs_nonNA,Sarkar_Exprs_NA)
 
 ####################################################################################################################################
 ## SV40-TAG
+
 GSE89307 <- read_delim("DerivingKineticSets_RawData/GSE89307_FPKM.txt","\t", escape_double = FALSE, trim_ws = TRUE)
 
 SV40 = data.matrix(GSE89307[,3:ncol(GSE89307)])
@@ -96,9 +141,26 @@ x <- mogene20sttranscriptclusterSYMBOL
 mapped_probes <- mappedkeys(x)
 xx <- as.data.frame(x[mapped_probes])
 
-Kupper_Exprs <- merge(xx, Kupper_Exprs,by.x = 1, by.y = 0,all.y=T)
+Kupper_Exprs <- merge(xx, Kupper_Exprs,by.x = 1, by.y =0,all.y = T)
 
-Kupper_VacV = data.matrix(Kupper_Exprs[,3:ncol(Kupper_Exprs)])
+## Standardizes probe calling for microarray datasets!!!
+## Any probes that don't map to genes are given NA designation "---"
+## For non-NA probes, any probes found mapping to the same gene will be compared
+## Only the probe with the highest  median absolute deviation will be retained
+## https://support.bioconductor.org/p/70133/
+
+Kupper_Exprs %<>% mutate(symbol = case_when(is.na(symbol) ~ "---",
+                                            !is.na(symbol) ~ symbol),
+                         MAD = apply(dplyr::select(Kupper_Exprs,starts_with("GSM")),1,mad))
+
+Kupper_Exprs_NA = Kupper_Exprs %>% subset(symbol == "---")
+Kupper_Exprs_nonNA = Kupper_Exprs %>% subset(symbol != "---") %>% group_by(symbol) %>%
+  slice_max(MAD, with_ties = F)
+
+Kupper_Exprs = rbind(Kupper_Exprs_nonNA,Kupper_Exprs_NA)
+Kupper_Exprs = Kupper_Exprs %>% dplyr::select(symbol, starts_with("GSM"))
+
+Kupper_VacV = data.matrix(Kupper_Exprs[,2:ncol(Kupper_Exprs)])
 rownames(Kupper_VacV) = toupper(Kupper_Exprs$symbol)
 colnames(Kupper_VacV) = c("N", "CM", "EM", "d5", "d10", "d15", "d20", "d25", "d30", "d45", "d60", "d90", "OT-I Fasbp4/5 dKO skin infiltrating cells 10 days post infection", "OT-I Fasbp4/5 dKO skin infiltrating cells 30 days post infection")
 
@@ -107,7 +169,12 @@ Kupper_VacV = Kupper_VacV[,-c(ncol(Kupper_VacV),ncol(Kupper_VacV)-1)]
 Kupper_VacV = Kupper_VacV[,c(2,3,1,4:12)]
 
 boxplot(Kupper_VacV)
-rm(Kupper,Kupper_Exprs,x,xx,mapped_probes)
+
+Kupper_VacV = Kupper_VacV[rowSums(Kupper_VacV)>0,]
+Kupper_VacV = Kupper_VacV[apply(Kupper_VacV,1,sd)!=0,]
+
+
+rm(Kupper,Kupper_Exprs,x,xx,mapped_probes, Kupper_Exprs_NA, Kupper_Exprs_nonNA)
 
 ####################################################################################################################################
 ## Human Yellow Fever Microarray
@@ -115,31 +182,43 @@ rm(Kupper,Kupper_Exprs,x,xx,mapped_probes)
 GSE26347 = getGEO("GSE26347",AnnotGPL = TRUE)
 
 GSE26347_Eff = exprs(GSE26347[["GSE26347-GPL570_series_matrix.txt.gz"]])[,19:25]
-ProbeIDs = GSE26347[["GSE26347-GPL570_series_matrix.txt.gz"]]@featureData@data[,c(1,3)]
-GSE26347_Eff = merge(ProbeIDs,GSE26347_Eff,by = 0)
 
-GSE26347_Effector = data.matrix(GSE26347_Eff[,-(1:3)])
-rownames(GSE26347_Effector) = GSE26347_Eff$`Gene symbol`
-colnames(GSE26347_Effector) = c("Naive_1","Naive_2","Naive_3","Effector_1","Effector_2","Effector_3","Effector_4")
+ProbeIDs = GSE26347[["GSE26347-GPL570_series_matrix.txt.gz"]]@featureData@data %>%
+  mutate(symbol = sapply(strsplit(`Gene symbol`,"///"),function(x) x[1])) %>%
+  dplyr::select(ID, symbol)
+
+GSE26347_Eff = merge(ProbeIDs,GSE26347_Eff,by.x = 1,by.y = 0)
+
+## Standardizes probe calling for microarray datasets!!!
+## Any probes that don't map to genes are given NA designation "---"
+## For non-NA probes, any probes found mapping to the same gene will be compared
+## Only the probe with the highest  median absolute deviation will be retained
+## https://support.bioconductor.org/p/70133/
+
+GSE26347_Eff %<>% mutate(symbol = case_when(is.na(symbol) ~ "---",
+                                            !is.na(symbol) ~ symbol),
+                         MAD = apply(dplyr::select(GSE26347_Eff,starts_with("GSM")),1,mad))
+
+GSE26347_Eff_NA = GSE26347_Eff %>% subset(symbol == "---")
+GSE26347_Eff_nonNA = GSE26347_Eff %>% subset(symbol != "---") %>% group_by(symbol) %>%
+  slice_max(MAD, with_ties = F)
+
+GSE26347_Eff = rbind(GSE26347_Eff_nonNA,GSE26347_Eff_NA)
+GSE26347_Eff = GSE26347_Eff %>% dplyr::select(symbol, starts_with("GSM"))
+
+GSE26347_Effector = data.matrix(GSE26347_Eff[,-1])
+rownames(GSE26347_Effector) = GSE26347_Eff$symbol
+colnames(GSE26347_Effector) = c("Naive_BAW","Naive_MRR","Naive_EEB","Effector_BAW","Effector_MRR","Effector_EEB","Effector_BLS")
 
 ## Log2 transformation needed - see boxplot before and after
 boxplot(GSE26347_Effector)
 GSE26347_Effector = log2(GSE26347_Effector)
 boxplot(GSE26347_Effector)
 
-## collapses replicate probes - average of all probes for one gene
-Genes = unique(rownames(GSE26347_Effector))
-GSE26347_Effector_Collapsed = matrix(nrow = length(Genes),ncol = ncol(GSE26347_Effector))
-for(i in 1:length(Genes)){
-  Gene = GSE26347_Effector[rownames(GSE26347_Effector)==Genes[i],]
-  if(!is.null(nrow(Gene))) Gene = colMeans(Gene)
-  GSE26347_Effector_Collapsed[i,] = Gene
-}
+GSE26347_Effector = GSE26347_Effector[rowSums(GSE26347_Effector)>0,]
+GSE26347_Effector = GSE26347_Effector[apply(GSE26347_Effector,1,sd)!=0,]
 
-rownames(GSE26347_Effector_Collapsed) = Genes
-colnames(GSE26347_Effector_Collapsed) = colnames(GSE26347_Effector)
-
-rm(GSE26347,GSE26347_Eff,GSE26347_Effector, ProbeIDs, Gene, Genes, i)
+rm(GSE26347,GSE26347_Eff, ProbeIDs, GSE26347_Eff_NA, GSE26347_Eff_nonNA)
 
 ####################################################################################################################################
 ## Human Yellow Fever RNASeq
@@ -171,12 +250,12 @@ rm(GeneSymbol, GSE100745, mart)
 ####################################################################################################################################
 ## Puts together all Kinetic Sets into one rda file, includes PlotType instructions for how to handle stats and plotting
 
-KineticLists = list(Sarkar_Arm = list(Exprs = Sarkar_Arm, PlotType = "Replicate_Line"), 
-                    Arm = list(Exprs = Arm, PlotType = "Replicate_Line"), 
-                    cl13 = list(Exprs = cl13, PlotType = "Replicate_Line"), 
-                    SV40 = list(Exprs = SV40, PlotType = "Replicate_Line"),
-                    Kupper_VacV = list(Exprs = Kupper_VacV, PlotType = "Slope_Line"),
-                    YF_Effector = list(Exprs = GSE26347_Effector_Collapsed, PlotType = "Replicate_Box"),
+KineticLists = list(Sarkar_Arm = list(Exprs = Sarkar_Arm, PlotType = "Replicate_Line_LME"), 
+                    Arm = list(Exprs = Arm, PlotType = "Replicate_Line_LME"), 
+                    cl13 = list(Exprs = cl13, PlotType = "Replicate_Line_LME"), 
+                    SV40 = list(Exprs = SV40, PlotType = "Replicate_Line_LME"),
+                    Kupper_VacV = list(Exprs = Kupper_VacV, PlotType = "Line_SlopeAnalysis"),
+                    YF_Effector = list(Exprs = GSE26347_Effector, PlotType = "Replicate_Line_LME"),
                     YF_RNASeq = list(Exprs = YF_RNASeq, PlotType = "Replicate_Line_TTest"))
 
 save(KineticLists,file = "KineticSets.rda",compression_level = 9)
