@@ -230,16 +230,15 @@ SignatureScorePlot <- function(KineticSets,SigList,pal = rep("black",length(SigL
     for(i in (7*(length(SigList)-1)+1):length(CombinedPlot)) CombinedPlot[[i]] = CombinedPlot[[i]] + theme(axis.text.x = element_text(size = 6))
     
     
-    plot_grid(plotlist= CombinedPlot, nrow = 3,align = "hv",rel_widths = c(0.7,1,1,1.2,1.4,0.5,0.7))
+    plot_grid(plotlist= CombinedPlot, ncol = 7,align = "hv",rel_widths = c(0.7,1,1,1.2,1.4,0.5,0.7))
 }
 
 #########################################################################################################
 ## Combined Plot - plots just Cd8 clusters
 
-SigScorePlot = SignatureScorePlot(KineticLists,DEGList_UpDown,pal = palette,nperm = 100)
-SigScorePlot
+c = SignatureScorePlot(KineticLists,DEGList_UpDown,pal = palette,nperm = 100)
 
 Scale = 1.9
 pdf("3D_Hacohen_BackScoring_v3 2 YF.pdf",width = 6.55*Scale,height = 3*Scale)
-plot_grid(plotlist = CombinedPlot,align = "hv",ncol = 7,rel_widths = c(0.7,1,1,1.2,1.4,0.5,0.7))
+palette = scales::hue_pal()(5)[c(1,3,5)]
 dev.off()
